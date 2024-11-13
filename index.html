@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeFit Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .tab-active {
+            border-bottom: 2px solid #3B82F6;
+        }
+        .task-card, .workout-card {
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .task-card:hover, .workout-card:hover {
+            transform: translateY(-2px);
+        }
+        body {
+            background-image: url('https://i.pinimg.com/originals/85/4b/d0/854bd088302a0f565f61e980271263bf.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="max-w-md mx-auto p-4">
+        <!-- Header -->
+        <header class="text-center mb-6 glass-effect p-4 rounded-lg">
+            <h1 class="text-2xl font-bold text-blue-600">LifeFit Manager</h1>
+            <div id="timer" class="text-xl font-mono mt-2">00:00:00</div>
+            <div class="flex justify-center gap-2 mt-2">
+                <button onclick="startTimer()" class="bg-green-500 text-white px-3 py-1 rounded"><i class="bi bi-play-fill"></i></button>
+                <button onclick="pauseTimer()" class="bg-yellow-500 text-white px-3 py-1 rounded"><i class="bi bi-pause-fill"></i></button>
+                <button onclick="resetTimer()" class="bg-red-500 text-white px-3 py-1 rounded"><i class="bi bi-arrow-counterclockwise"></i></button>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="flex border-b mb-6 glass-effect rounded-t-lg">
+            <button onclick="switchTab('tasks')" id="tasksTab" class="flex-1 py-2 text-center tab-active">
+                <i class="bi bi-list-check mr-2"></i>Tasks
+            </button>
+            <button onclick="switchTab('gym')" id="gymTab" class="flex-1 py-2 text-center">
+                <i class="bi bi-trophy mr-2"></i>Gym
+            </button>
+        </div>
+
+        <!-- Tasks Section -->
+        <div id="tasksSection" class="space-y-4">
+            <!-- Task Form -->
+            <form id="taskForm" class="glass-effect p-4 rounded-lg shadow">
+                <input type="text" id="taskTitle" placeholder="Task Title" class="w-full mb-2 p-2 border rounded" required>
+                <textarea id="taskDescription" placeholder="Description" class="w-full mb-2 p-2 border rounded" rows="2"></textarea>
+                <input type="datetime-local" id="taskDueDate" class="w-full mb-2 p-2 border rounded" required>
+                <select id="taskCategory" class="w-full mb-2 p-2 border rounded">
+                    <option value="work">Work</option>
+                    <option value="personal">Personal</option>
+                    <option value="reminder">Reminder</option>
+                </select>
+                <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+                    Add Task
+                </button>
+            </form>
+            <!-- Tasks List -->
+            <div id="tasksList" class="space-y-2"></div>
+        </div>
+
+        <!-- Gym Section -->
+        <div id="gymSection" class="hidden space-y-4">
+            <!-- Workout Form -->
+            <form id="workoutForm" class="glass-effect p-4 rounded-lg shadow">
+                <input type="text" id="exerciseName" placeholder="Exercise Name" class="w-full mb-2 p-2 border rounded" required>
+                <select id="exerciseIcon" class="w-full mb-2 p-2 border rounded">
+                    <option value="bi-bicycle">🚴 Cycling</option>
+                    <option value="bi-diagram-3">🏋️ Weight Training</option>
+                    <option value="bi-lightning">⚡ HIIT</option>
+                    <option value="bi-heart">🏃 Running</option>
+                </select>
+                <input type="number" id="sets" placeholder="Sets" class="w-full mb-2 p-2 border rounded" required>
+                <input type="number" id="reps" placeholder="Reps" class="w-full mb-2 p-2 border rounded" required>
+                <input type="number" id="duration" placeholder="Duration (minutes)" class="w-full mb-2 p-2 border rounded" required>
+                <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+                    Add Workout
+                </button>
+            </form>
+
+            <!-- Cardio Tracker -->
+            <form id="cardioForm" class="glass-effect p-4 rounded-lg shadow">
+                <h3 class="font-bold mb-2">Cardio Tracker</h3>
+                <input type="number" id="cardioTime" placeholder="Time (minutes)" class="w-full mb-2 p-2 border rounded" required>
+                <input type="number" id="cardioDistance" placeholder="Distance (km)" class="w-full mb-2 p-2 border rounded" required>
+                <input type="number" id="cardioCalories" placeholder="Calories Burned" class="w-full mb-2 p-2 border rounded" required>
+                <button type="submit" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">
+                    Log Cardio Session
+                </button>
+            </form>
+
+            <!-- Workout List -->
+            <div id="workoutList" class="space-y-2"></div>
+            
+            <!-- Cardio History -->
+            <div id="cardioHistory" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <script>
+        // Timer functionality
+        let timerInterval;
+        let seconds = 0;
+        let isRunning = false;
+
+        function startTimer() {
+            if (!isRunning) {
+                isRunning = true;
+                timerInterval = setInterval(() => {
+                    seconds++;
+                    updateTimerDisplay();
+                }, 1000);
+            }
+        }
+
+        function pauseTimer() {
+            isRunning = false;
+            clearInterval(timerInterval);
+        }
+
+        function resetTimer() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            seconds = 0;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            document.getElementById('timer').textContent = 
+                `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        // State Management
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let workouts = JSON.parse(localStorage.getItem('workouts')) || [];
+        let cardioSessions = JSON.parse(localStorage.getItem('cardioSessions')) || [];
+
+        // Notification Function
+        function scheduleNotification(task) {
+            if ("Notification" in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        const dueDate = new Date(task.dueDate);
+                        const now = new Date();
+                        const timeUntilDue = dueDate - now;
+
+                        if (timeUntilDue > 0) {
+                            setTimeout(() => {
+                                new Notification("Task Due!", {
+                                    body: `Your task "${task.title}" is due now!`
+                                });
+                            }, timeUntilDue);
+                        }
+                    }
+                });
+            }
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            document.getElementById('tasksSection').classList.toggle('hidden', tab !== 'tasks');
+            document.getElementById('gymSection').classList.toggle('hidden', tab !== 'gym');
+            document.getElementById('tasksTab').classList.toggle('tab-active', tab === 'tasks');
+            document.getElementById('gymTab').classList.toggle('tab-active', tab === 'gym');
+        }
+
+        // Tasks Management
+        document.getElementById('taskForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const task = {
+                id: Date.now(),
+                title: document.getElementById('taskTitle').value,
+                description: document.getElementById('taskDescription').value,
+                dueDate: document.getElementById('taskDueDate').value,
+                category: document.getElementById('taskCategory').value
+            };
+            tasks.push(task);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            scheduleNotification(task);
+            renderTasks();
+            e.target.reset();
+        });
+
+        function renderTasks() {
+            const tasksList = document.getElementById('tasksList');
+            tasksList.innerHTML = tasks.map(task => `
+                <div class="task-card p-4 rounded-lg shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold">${task.title}</h3>
+                            <p class="text-sm text-gray-600">${task.description}</p>
+                            <p class="text-sm text-gray-500">Due: ${new Date(task.dueDate).toLocaleString()}</p>
+                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">${task.category}</span>
+                        </div>
+                        <button onclick="deleteTask(${task.id})" class="text-red-500 hover:text-red-700">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(task => task.id !== id);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            renderTasks();
+        }
+
+        // Workout Management
+        document.getElementById('workoutForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const workout = {
+                id: Date.now(),
+                name: document.getElementById('exerciseName').value,
+                icon: document.getElementById('exerciseIcon').value,
+                sets: document.getElementById('sets').value,
+                reps: document.getElementById('reps').value,
+                duration: document.getElementById('duration').value
+            };
+            workouts.push(workout);
+            localStorage.setItem('workouts', JSON.stringify(workouts));
+            renderWorkouts();
+            e.target.reset();
+        });
+
+        function renderWorkouts() {
+            const workoutList = document.getElementById('workoutList');
+            workoutList.innerHTML = workouts.map(workout => `
+                <div class="workout-card p-4 rounded-lg shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold"><i class="bi ${workout.icon} mr-2"></i>${workout.name}</h3>
+                            <p class="text-sm text-gray-600">Sets: ${workout.sets} | Reps: ${workout.reps}</p>
+                            <p class="text-sm text-gray-500">Duration: ${workout.duration} minutes</p>
+                        </div>
+                        <button onclick="deleteWorkout(${workout.id})" class="text-red-500 hover:text-red-700">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteWorkout(id) {
+            workouts = workouts.filter(workout => workout.id !== id);
+            localStorage.setItem('workouts', JSON.stringify(workouts));
+            renderWorkouts();
+        }
+
+        // Cardio Tracking
+        document.getElementById('cardioForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const cardio = {
+                id: Date.now(),
+                time: document.getElementById('cardioTime').value,
+                distance: document.getElementById('cardioDistance').value,
+                calories: document.getElementById('cardioCalories').value,
+                date: new Date().toLocaleString()
+            };
+            cardioSessions.push(cardio);
+            localStorage.setItem('cardioSessions', JSON.stringify(cardioSessions));
+            renderCardioHistory();
+            e.target.reset();
+        });
+
+        function renderCardioHistory() {
+            const cardioHistory = document.getElementById('cardioHistory');
+            cardioHistory.innerHTML = `
+                <h3 class="font-bold mb-2">Cardio History</h3>
+                ${cardioSessions.map(session => `
+                    <div class="glass-effect p-4 rounded-lg shadow">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-gray-600">Time: ${session.time} min | Distance: ${session.distance} km</p>
+                                <p class="text-sm text-gray-500">Calories: ${session.calories} | Date: ${session.date}</p>
+                            </div>
+                            <button onclick="deleteCardio(${session.id})" class="text-red-500 hover:text-red-700">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function deleteCardio(id) {
+            cardioSessions = cardioSessions.filter(session => session.id !== id);
+            localStorage.setItem('cardioSessions', JSON.stringify(cardioSessions));
+            renderCardioHistory();
+        }
+
+        // Initial Render
+        renderTasks();
+        renderWorkouts();
+        renderCardioHistory();
+    </script>
+</body>
+</html>
